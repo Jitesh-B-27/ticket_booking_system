@@ -33,7 +33,7 @@ const seedDatabase = async () => {
         console.log(`Created Event: "${event.name}" with ${event.totalSeats} seats.`);
 
         const seats = [];
-        for (let i = 1; i < totalSeatsForEvent; i++){
+        for (let i = 1; i <= totalSeatsForEvent; i++){
             seats.push({
                 eventId: event._id,
                 seatNumber: `SEC-A-${String(i).padStart(4, '0')}`,
