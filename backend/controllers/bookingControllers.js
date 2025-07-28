@@ -1,5 +1,6 @@
 const Event = require("../models/Event");
 const Seat = require("../models/Seat");
+const mongoose = require("mongoose");
 
 const getEvents = async (req, res) => {
     try{
@@ -24,7 +25,7 @@ const getSeats = async (req, res) => {
             return res.status(404).json({ message: 'Event not found.' });
         }
 
-        const seats = await Seat.find(eventId).select('seatNumber isBooked lockedUntil');
+        const seats = await Seat.find({eventId}).select('seatNumber isBooked lockedUntil');
         res.json({event, seats});
     } catch(error){
         console.error('Error in getSeats:', error);
