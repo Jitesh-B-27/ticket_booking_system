@@ -15,7 +15,7 @@ redisClient.on('ready', () => console.log('Redis client is ready.'));
 redisClient.on('error', (err) => console.error('Redis client error:', err.message));
 redisClient.on('end', () => console.log('Redis client connection ended.'));
 
-const aquireLock = async (key, value, ttl) => {
+const acquireLock = async (key, value, ttl) => {
     try{
         const result = await redisClient.set(key, value, 'NX', 'PX', ttl);
         return result === 'OK';
@@ -25,7 +25,7 @@ const aquireLock = async (key, value, ttl) => {
     }
 }
 
-const deleteLock = async (key) => {
+const releaseLock = async (key) => {
     try{
         await redisClient.del(key);
         return true;
@@ -36,7 +36,7 @@ const deleteLock = async (key) => {
 }
 
 module.exports = {
-    aquireLock: aquireLock,
-    deleteLock: deleteLock,
+    acquireLock: acquireLock,
+    releaseLock: releaseLock,
     redisClient: redisClient,
 }
