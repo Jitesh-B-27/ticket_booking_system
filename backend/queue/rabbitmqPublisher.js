@@ -32,7 +32,7 @@ const connectPublisherRabbitMq = async () => {
         }
 
         if (!channel){
-            channel = await connection.createChanel();
+            channel = await connection.createChannel();
             await channel.assertQueue(BOOKING_QUEUE, {durable: true}); //durable is for data persistance: Data will survive a RabbitMq broker restart
             console.log(`Publisher asserted '${BOOKING_QUEUE}' queue.`);
         }
@@ -49,7 +49,7 @@ const publishToQueue = async (message) => {
     }
 
     try{
-        const sent = channel.sendToQueue(BOOKING_QUEUE, Buffer.from(JSON.stringify(message)), {persistent: true}); //persisten: true is used to write the queue data into disk in order to not to forget data as long as queue is durable
+        const sent = channel.sendToQueue(BOOKING_QUEUE, Buffer.from(JSON.stringify(message)), {persistent: true}); //persistent: true is used to write the queue data into disk in order to not to forget data as long as queue is durable
 
         if (sent){
             console.log(`[Publisher] Sent booking request ID: ${message.bookingRequestId}`);

@@ -1,40 +1,43 @@
-# docker-compose.yml - Located in the root of your project: high-concurrency-booking-system/
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: booking_mongodb
+  postgres:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "27017:27017" # Map local 27017 to container 27017
+      - "5432:5432"
     volumes:
-      - mongo_data:/data/db # Persist MongoDB data
+      - postgres_data:/var/lib/postgresql/data/
     networks:
-      - booking-network
+      - booking_network
 
   redis:
-    image: redis:latest
-    container_name: booking_redis
+    image: redis:6.2-alpine
+    restart: always
     ports:
-      - "6379:6379" # Map local 6379 to container 6379
+      - "6379:6379"
     networks:
-      - booking-network
+      - booking_network
 
   rabbitmq:
-    image: rabbitmq:3-management
-    container_name: booking_rabbitmq
+    image: rabbitmq:3.9-management-alpine
+    restart: always
     ports:
-      - "5672:5672" # Map local 5672 to container 5672 (for app connection)
-      - "15672:15672" # Map local 15672 to container 15672 (for web UI)
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      - "5672:5672"
+      - "15672:15672"
     networks:
-      - booking-network
-
-volumes:
-  mongo_data: # Define the named volume for MongoDB data persistence
+      - booking_network
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
 
 networks:
-  booking-network:
-    driver: bridge # Create a custom network for these services
+  booking_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
