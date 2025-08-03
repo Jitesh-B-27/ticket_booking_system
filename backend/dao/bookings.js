@@ -1,41 +1,40 @@
-const db = require("../db");
+// backend/dao/bookings.js
 
-const createPendingBooking = async (bookingId, userId, showtimeId, seatId) => {
-    const queryText = `
-        INSERT INTO bookings(id, user_id, showtime_id, seat_id, status)
-        VALUES ($1, $2, $3, $4, 'PENDING')
-        RETURNING id, status, created_at;
-    `;
-    const { rows } = await db.query(queryText, [bookingId, userId, showtimeId, seatId]);
-    return rows[0];
+const { query } = require('../db');
+
+exports.createPendingBooking = async (bookingId, userId, showtimeId, seatId) => {
+    const result = await query(
+        'INSERT INTO bookings (id, user_id, showtime_id, seat_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [bookingId, userId, showtimeId, seatId, 'PENDING']
+    );
+    return result.rows[0];
 };
 
-const getBookingStatus = async (bookingId) => {
-    const queryText = `
-        SELECT
+exports.getBookingStatus = async (bookingId) => {
+    const result = await query(
+        `SELECT
             b.id,
             b.status,
             b.created_at,
             b.booked_at,
-            u.name AS user_name,
-            s.seat_number,
-            t.name AS theater_name,
+            u.id AS user_id,
+            sh.id AS showtime_id,
+            sh.showtime_start,
+            m.id AS movie_id,
             m.title AS movie_title,
-            sh.showtime_start
+            t.id AS theater_id,
+            t.name AS theater_name,
+            s.id AS seat_id,
+            s.seat_number,
+            s.row_number
         FROM bookings b
         JOIN users u ON b.user_id = u.id
-        JOIN seats s ON b.seat_id = s.id
         JOIN showtimes sh ON b.showtime_id = sh.id
         JOIN movies m ON sh.movie_id = m.id
         JOIN theaters t ON sh.theater_id = t.id
-        WHERE b.id = $1;
-    `;
-
-    const { rows } = await db.query(queryText, [bookingId]);
-    return rows[0];
-};
-
-module.exports = {
-    createPendingBooking: createPendingBooking,
-    getBookingStatus: getBookingStatus,
+        JOIN seats s ON b.seat_id = s.id
+        WHERE b.id = $1`,
+        [bookingId]
+    );
+    return result.rows[0];
 };

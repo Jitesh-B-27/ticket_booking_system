@@ -1,42 +1,65 @@
-const Redis = require("ioredis");
-const dotenv = require("dotenv");
+const redis = require("redis");
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
 
-dotenv.config();
+const redisClient = redis.createClient({ url: process.env.REDIS_URI});
 
-const redisClient = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    maxRetriesPerRequest: null,
-});
-
-//Handle Redis connection events (Professional Practice)
-redisClient.on('connect', () => console.log('Redis client connected.'));
-redisClient.on('ready', () => console.log('Redis client is ready.'));
+redisClient.on('connect', () => console.log('Redis client connected'));
+redisClient.on('ready', () => console.log('Redis client is ready'));
 redisClient.on('error', (err) => console.error('Redis client error:', err.message));
-redisClient.on('end', () => console.log('Redis client connection ended.'));
+redisClient.on('onEnd', () => console.log('Redis client connection ended.'));
 
-const acquireLock = async (key, value, ttl) => {
+/**
+ * Acquires a distributed lock for a given key.
+ * @param {string} key - The key to lock.
+ * @param {number} ttl - Time-to-live in milliseconds.
+ * @returns {Promise<string|false>} The unique lock value if acquired, otherwise false.
+ */
+
+const acquireLock = async (key, ttl) => {
+    const lockValue = uuidv4();
     try{
-        const result = await redisClient.set(key, value, 'NX', 'PX', ttl);
-        return result === 'OK';
-    } catch(err){
-        console.error(`Error acquiring Redis lock for key ${key}:`, error.message);
+        const result = await redisClient.set(key, lockValue, {
+            NX: true,
+            PX: ttl,
+        });
+
+        return result === 'OK' ? lockValue : false;
+    } catch (error){
+        console.error(`Error acquiring Redis lock for key ${key}: `, error.message);
         return false;
     }
-}
+};
 
-const releaseLock = async (key) => {
+/**
+ * Releases a distributed lock, but only if the value matches.
+ * This prevents one process from releasing a lock that belongs to another.
+ * @param {string} key - The lock key.
+ * @param {string} value - The unique value of the lock to be released.
+ * @returns {Promise<boolean>} True if the lock was released, false otherwise.
+ */
+
+const releaseLock = async (key, value) => {
+    const script = `
+        if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("del", KEYS[1])
+        else
+            return 0
+        end
+    `;
+
     try{
-        await redisClient.del(key);
-        return true;
-    } catch(error){
-        console.error(`Error releasing Redis lock for key ${key}:`, error.message);
+        const result = await redisClient.eval(script, { keys: [key], arguments: [value]});
+        // The result is 1 if the lock was deleted, 0 if it was not found or the value didnt match
+        return result === 1;
+    } catch (error){
+        console.error(`Error releasing Redis lock for key ${key}: `, error.message);
         return false;
     }
 }
 
 module.exports = {
+    redisClient: redisClient,
     acquireLock: acquireLock,
     releaseLock: releaseLock,
-    redisClient: redisClient,
-}
+};

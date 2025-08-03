@@ -20,6 +20,7 @@ async function connectAndStart() {
         await db.query('SELECT 1');
         console.log('PostgreSQL connected successfully via Connection Pool');
 
+        await connectPublisherRabbitMq();
         console.log("RabbitMQ Publisher Connected successfully");
 
         app.listen(PORT, () => {

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- A movie can have many showtimes.
 CREATE TABLE IF NOT EXISTS movies (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     duration_minutes INTEGER NOT NULL,
     genre VARCHAR(255),
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS showtimes (
 -- The core booking record. A booking links a user to a seat at a showtime.
 CREATE TYPE booking_status AS ENUM ('PENDING', 'CONFIRMED', 'FAILED');
 CREATE TABLE IF NOT EXISTS bookings (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id INTEGER NOT NULL REFERENCES users(id),
     showtime_id INTEGER NOT NULL REFERENCES showtimes(id),
     seat_id INTEGER NOT NULL REFERENCES seats(id),
