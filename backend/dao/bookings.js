@@ -38,3 +38,19 @@ exports.getBookingStatus = async (bookingId) => {
     );
     return result.rows[0];
 };
+
+exports.getBookingByShowtimeAndSeat = async (showtimeId, seatId) => {
+    const result = await query(
+        'SELECT id, status FROM bookings WHERE showtime_id = $1 AND seat_id = $2 AND status = $3',
+        [showtimeId, seatId, 'CONFIRMED']
+    );
+    return result.rows[0];
+};
+
+exports.getPendingBookingForUser = async (userId, showtimeId, seatId) => {
+    const result = await query(
+        'SELECT id, status FROM bookings WHERE user_id = $1 AND showtime_id = $2 AND seat_id = $3 AND status = $4',
+        [userId, showtimeId, seatId, 'PENDING']
+    );
+    return result.rows[0];
+};

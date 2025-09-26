@@ -3,15 +3,36 @@ const { publishToQueue } = require("../queue/rabbitmqPublisher");
 const { v4: uuidv4 } = require("uuid");
 
 const createBooking = async (req, res) => {
-    const { userId, showtimeId, seatId } = req.body;
-
-    if (!userId || !showtimeId || !seatId){
-        return res.status(400).json({message: 'Missing required booking information.'});
-    }
-
-    const bookingRequestId = uuidv4();
-
     try{
+        const { userId, showtimeId, seatId } = req.body;
+
+        if (!userId || !showtimeId || !seatId){
+            return res.status(400).json({message: 'Missing required booking information.'});
+        }
+
+        // Step to make our API IDEMPOTENT
+        const userPendingBooking = await bookingsDAO.getPendingBookingForUser(userId, showtimeId, seatId);
+        if (userPendingBooking){
+            console.log(`Found existing PENDING booking for user ${userId}. Re-queuing.`);
+            await publishToQueue({
+                bookingRequestId: userPendingBooking.id,
+                userId,
+                showtimeId,
+                seatId,
+            })
+            res.status(202).json({
+                message: "Existing booking request re-queued for processing.",
+                bookingId: userPendingBooking.id,
+                status: userPendingBooking.status
+            })
+        }
+
+        const confirmedBooking = await bookingsDAO.getBookingByShowtimeAndSeat(showtimeId, seatId);
+        if (confirmedBooking && confirmedBooking.status === 'CONFIRMED'){
+            return res.status(409).json({ message: 'Seat is already booked.' });
+        }
+        const bookingRequestId = uuidv4();
+
         const newBooking = await bookingsDAO.createPendingBooking(bookingRequestId, userId, showtimeId, seatId);
 
         const bookingMessage = {
